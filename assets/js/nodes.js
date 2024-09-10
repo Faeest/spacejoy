@@ -1,3 +1,4 @@
+// a GameObjects constant is made with Dicionary class which have DictionaryEntries array as it's value. GameObject class was made for the base of any object in the game, It have reference whic will work if other object as the children assign them self as the children. The assignment proccess was to assign children UUID inside the parent references property. in this way parent can call the children using GameObjects<Dictionary> method for meassurement or anything todo with the game
 class Dictionary {
 	constructor() {
 		/** @type {Array<DictionaryEntries>} */
@@ -63,15 +64,3 @@ class Player extends GameObject {
 		super(...args);
 	}
 }
-// camera (anchor)
-// - player
-
-// dictionary
-// dictionary entries
-// emit id
-// recieve and store id for camera anchor
-
-// Dict
-// - Dict Entries
-// - - Player / anything
-// - - - GameObject

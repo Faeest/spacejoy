@@ -20,7 +20,18 @@ class Dictionary {
 			return e.value.constructor.name == classes;
 		})?.value;
 	}
-
+	/** @returns {GameObject[]} */
+	getAllItemById(id = "") {
+		return _.filter(this.entries, (e) => {
+			return e.id == id;
+		});
+	}
+	/** @returns {GameObject[]} */
+	getAllItemByClass(classes = "") {
+		return _.filter(this.entries, (e) => {
+			return e.value.constructor.name == classes;
+		});
+	}
 	proccessAll() {
 		for (let entries of this.entries) {
 			entries?.proccess?.();
@@ -89,8 +100,8 @@ class Camera extends GameObject {
 
 		// Calculate the median position for the players
 		if (xaxis.length > 0 && yaxis.length > 0) {
-			let medianX = 300 - round(_.reduce(xaxis, (sum, n) => sum + n) / _.size(xaxis));
-			let medianY = 300 - round(_.reduce(yaxis, (sum, n) => sum + n) / _.size(yaxis));
+			let medianX = width * 0.5 - round(_.reduce(xaxis, (sum, n) => sum + n) / _.size(xaxis));
+			let medianY = height * 0.5 - round(_.reduce(yaxis, (sum, n) => sum + n) / _.size(yaxis));
 			this.targetPosition.set(medianX, medianY);
 		}
 
@@ -106,31 +117,33 @@ class Player extends GameObject {
 		this.speed = 200;
 	}
 	proccess() {
-		let action = createVector();
-		if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) {
-			action.x -= this.speed;
-		}
-		if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) {
-			action.x += this.speed;
-		}
-		if (keyIsDown(UP_ARROW) || keyIsDown(87)) {
-			action.y -= this.speed;
-		}
-		if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) {
-			action.y += this.speed;
-		}
-		action.normalize().mult(this.speed);
-		this.acceleration.add(action);
-		this.velocity.add(this.acceleration);
+		if (!this.immovable) {
+			let action = createVector();
+			if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) {
+				action.x -= this.speed;
+			}
+			if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) {
+				action.x += this.speed;
+			}
+			if (keyIsDown(UP_ARROW) || keyIsDown(87)) {
+				action.y -= this.speed;
+			}
+			if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) {
+				action.y += this.speed;
+			}
+			action.normalize().mult(this.speed);
+			this.acceleration.add(action);
+			this.velocity.add(this.acceleration);
 
-		this.position.add(p5.Vector.mult(this.velocity, deltaTime * 0.001));
+			this.position.add(p5.Vector.mult(this.velocity, deltaTime * 0.001));
 
-		if (this.velocity.mag() < this.speed) {
-			this.velocity.set(0, 0);
-		} else {
-			this.velocity.mult(0.8);
+			if (this.velocity.mag() < this.speed) {
+				this.velocity.set(0, 0);
+			} else {
+				this.velocity.mult(0.8);
+			}
+			this.acceleration.set(0, 0);
 		}
-		this.acceleration.set(0, 0);
 	}
 	render() {
 		push();

@@ -14,6 +14,7 @@ class Utlities_class {
 			.strokeWeight(0)
 			.text(this.currentFPS + " / s", 10, 20);
 		pop();
+		return;
 	} //! FPS counter
 	renderDelta() {
 		push();
@@ -22,21 +23,23 @@ class Utlities_class {
 			.strokeWeight(0)
 			.text(round(round(deltaTime)) + " ms", 10, 40);
 		pop();
+		return;
 	} //! Delta Time
 	renderGrid(anchor = createVector(0, 0)) {
 		push();
 		stroke(50);
 		for (let i = -10; i < 30; i++) {
 			if (i * this.gridResolution < width * 1.5) {
-				let xpos = i * this.gridResolution + ((anchor.x * 0.8) % this.gridResolution);
+				let xpos = i * this.gridResolution + ((anchor.x * 1) % this.gridResolution);
 				line(xpos, -100, xpos, height + 100);
 			}
 			if (i * this.gridResolution < height * 1.5) {
-				let ypox = i * this.gridResolution + ((anchor.y * 0.8) % this.gridResolution);
+				let ypox = i * this.gridResolution + ((anchor.y * 1) % this.gridResolution);
 				line(-100, ypox, width + 100, ypox);
 			}
 		}
 		pop();
+		return;
 	}
 	debug(...args) {
 		if (args[0]) {
@@ -47,6 +50,7 @@ class Utlities_class {
 			});
 			pop();
 		}
+		return;
 	}
 }
 const Utilities = new Utlities_class();

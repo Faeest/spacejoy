@@ -1,7 +1,5 @@
 let gamecanvas;
 function setup() {
-	init(new Camera({ recieveReferences: true }));
-	init(new Player(), { emit: true, recieverClass: "Camera" });
 	let dimension;
 	if (windowWidth > windowHeight) {
 		dimension = windowHeight < 600 ? windowHeight : 600;
@@ -11,12 +9,24 @@ function setup() {
 	gamecanvas = createCanvas(dimension, dimension);
 	gamecanvas.canvas.parentElement.classList.add("d-flex", "justify-content-center");
 	frameRate(60);
+	init(new Camera({ recieveReferences: true }));
+	init(new Player(), { emit: true, recieverClass: "Camera" });
+	// frameRate(10)
 }
 
 function draw() {
+	GameObjects.getItemByClass("Camera").proccess();
+	GameObjects.getItemByClass("Player").proccess();
 	background(0);
+	Utilities.renderGrid(GameObjects.getItemByClass("Camera").position);
 	Utilities.renderFPS();
 	Utilities.renderDelta();
+	Utilities.debug([GameObjects.getItemByClass("Camera"),GameObjects.getItemByClass("Player")])
+	push();
+	// translate(p5.Vector.sub(createVector(width * 0.5, height * 0.5), GameObjects.getItemByClass("Player").position));
+	translate(GameObjects.getItemByClass("Camera").position);
+	GameObjects.getItemByClass("Player").render();
+	pop();
 }
 
 Controller.search();

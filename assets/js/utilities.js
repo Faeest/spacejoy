@@ -2,6 +2,7 @@ class Utlities_class {
 	constructor() {
 		this.currentFPS = 0;
 		this.currentDelta = 0;
+		this.gridResolution = 30;
 	}
 	renderFPS() {
 		if (frameCount % 10 == 0) {
@@ -22,5 +23,30 @@ class Utlities_class {
 			.text(round(round(deltaTime)) + " ms", 10, 40);
 		pop();
 	} //! Delta Time
+	renderGrid(anchor = createVector(0, 0)) {
+		push();
+		stroke(50);
+		for (let i = -10; i < 30; i++) {
+			if (i * this.gridResolution < width * 1.5) {
+				let xpos = i * this.gridResolution + ((anchor.x * 0.8) % this.gridResolution);
+				line(xpos, -100, xpos, height + 100);
+			}
+			if (i * this.gridResolution < height * 1.5) {
+				let ypox = i * this.gridResolution + ((anchor.y * 0.8) % this.gridResolution);
+				line(-100, ypox, width + 100, ypox);
+			}
+		}
+		pop();
+	}
+	debug(...args) {
+		if (args[0]) {
+			push();
+			fill(255).noStroke().strokeWeight(0);
+			args[0]?.forEach((e, x) => {
+				text(e.constructor.name + " : " + e.position.x + ", " + e.position.y, 10, 40 + (x + 1) * 20);
+			});
+			pop();
+		}
+	}
 }
 const Utilities = new Utlities_class();

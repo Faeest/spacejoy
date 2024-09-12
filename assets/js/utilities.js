@@ -46,6 +46,9 @@ class Utlities_class {
 			push();
 			fill(255).noStroke().strokeWeight(0);
 			args[0]?.forEach((e, x) => {
+				if (e?.value) {
+					e = e.value;
+				}
 				text(e.constructor.name + " : " + e.position.x + ", " + e.position.y, 10, 40 + (x + 1) * 20);
 			});
 			pop();

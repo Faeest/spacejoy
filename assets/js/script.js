@@ -11,7 +11,7 @@ function setup() {
 	frameRate(60);
 	init(new Camera({ recieveReferences: true }));
 	init(new Player(), { emit: true, recieverClass: "Camera" });
-	init(new Player({ immovable: true }), { emit: true, recieverClass: "Camera" });
+	// init(new Player({ immovable: true }), { emit: true, recieverClass: "Camera" });
 	// frameRate(10)
 }
 
@@ -22,9 +22,8 @@ function draw() {
 	Utilities.renderGrid(GameObjects.getItemByClass("Camera").position);
 	Utilities.renderFPS();
 	Utilities.renderDelta();
-	Utilities.debug([GameObjects.getItemByClass("Camera"), GameObjects.getItemByClass("Player")]);
+	Utilities.debug([GameObjects.getItemByClass("Camera"), ...GameObjects.getAllItemByClass("Player")]);
 	push();
-	// translate(p5.Vector.sub(createVector(width * 0.5, height * 0.5), GameObjects.getItemByClass("Player").position));
 	translate(GameObjects.getItemByClass("Camera").position);
 	_.forEach(GameObjects.getAllItemByClass("Player"), (e) => {
 		e.value.render();

@@ -81,7 +81,7 @@ class Camera extends GameObject {
 		this.velocity = createVector();
 		this.acceleration = createVector();
 		this.targetPosition = createVector(width / 2, height / 2);
-		this.easing = 0.5;
+		this.easing = 0.1;
 	}
 	proccess() {
 		// Create arrays to hold player positions

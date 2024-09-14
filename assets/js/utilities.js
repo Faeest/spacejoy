@@ -49,7 +49,8 @@ class Utlities_class {
 				if (e?.value) {
 					e = e.value;
 				}
-				text(e.constructor.name + " : " + e.position.x + ", " + e.position.y, 10, 40 + (x + 1) * 20);
+				if(e.constructor.name == "Player") text(e.constructor.name + " : " + e.velocity.x + ", " + e.velocity.y, 10, 60 + (x + 1) * 40);
+				text(e.constructor.name + " : " + e.position.x + ", " + e.position.y, 10, 40 + (x + 1) * 40);
 			});
 			pop();
 		}
@@ -57,3 +58,9 @@ class Utlities_class {
 	}
 }
 const Utilities = new Utlities_class();
+function easeOutExpo(x = 0) {
+	return x === 1 ? 1 : 1 - Math.pow(4, -10 * x);
+}
+function easeOutExpo2(x = 0) {
+	return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
+}

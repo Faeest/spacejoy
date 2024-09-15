@@ -1,5 +1,10 @@
+const PRODUCTION = 0;
+// const PRODUCTION = 1;
+const GameObjects = new Dictionary();
+const GameInputs = new Input();
 let gamecanvas;
-
+/** @type {RopeManager} */
+let GameRopes;
 let args, points, rope;
 
 const drawRopePoints = (points, colour, lw) => {
@@ -16,6 +21,7 @@ const drawRopePoints = (points, colour, lw) => {
 };
 
 function setup() {
+	GameRopes = new RopeManager({ mode: "closed" });
 	let dimension;
 	if (windowWidth > windowHeight) {
 		dimension = windowHeight < 600 ? windowHeight : 600;
@@ -26,47 +32,32 @@ function setup() {
 	gamecanvas.canvas.parentElement.classList.add("d-flex", "justify-content-center");
 	frameRate(60);
 	init(new Camera({ recieveReferences: true }));
-	init(new Player({ controlID: 1, controller: false }), { emit: true, recieverClass: "Camera" });
-	init(new Player({ controlID: 0, controller: false }), { emit: true, recieverClass: "Camera" });
+	init(new Player({ controlID: 1, width: 50, height: 50, controller: false }), { emit: true, recieverClass: "Camera" });
+	init(new Player({ controlID: 0, width: 50, height: 50, controller: false, y: 50 }), { emit: true, recieverClass: "Camera" });
+	init(new Player({ controlID: 0, width: 50, height: 50, controller: true, y: 100 }), { emit: true, recieverClass: "Camera" });
+
+	_.forEach(GameObjects.getAllItemByClass("Player"), (e) => {
+		GameRopes.assignPlayerRef(e.id);
+	});
+	GameRopes.generate();
 	frameRate(60);
-
-	args = {
-		start: createVector(100, height - 100),
-		end: createVector(width - 100, height - 100),
-		resolution: 8,
-		mass: 0.88,
-		damping: 0.95,
-		gravity: createVector(0, 0),
-		solverIterations: 100,
-		ropeColour: color(32, 192, 160),
-		ropeSize: 4,
-	};
-
-	points = Rope.generate(args.start, args.end, args.resolution, args.mass, args.damping);
-
-	rope = new Rope(points, args.solverIterations);
 }
 
 function draw() {
-	// make the rope good, it's now just a successed experiement applying on the game. :D
-	if (GameObjects.getAllItemByClass("Player").length > 1) {
-		let point0 = rope.getPoint(0);
-		point0.pos.set(GameObjects.getAllItemByClass("Player")[0].value.position);
-		let point49 = rope.getPoint(49);
-		point49.pos.set(GameObjects.getAllItemByClass("Player")[1].value.position);
-	}
 	listener.update();
+	background(0);
 	GameObjects.getItemByClass("Camera").proccess();
 	_.forEach(GameObjects.getAllItemByClass("Player"), (e) => {
 		e.value.proccess();
 	});
-	background(0);
 	Utilities.renderGrid(GameObjects.getItemByClass("Camera").position);
 	Utilities.renderFPS();
 	Utilities.renderDelta();
 	Utilities.debug([GameObjects.getItemByClass("Camera"), ...GameObjects.getAllItemByClass("Player")]);
 	push();
 	translate(GameObjects.getItemByClass("Camera").position);
+	GameRopes.update();
+	GameRopes.render();
 	_.forEach(GameObjects.getAllItemByClass("Player"), (e) => {
 		e.value.render();
 	});
@@ -76,8 +67,6 @@ function draw() {
 			.strokeWeight(0)
 			.text(listener.handlers[0].axes[0] + " " + listener.handlers[0].axes[1], 10, 20);
 	}
-	rope.update(args.gravity, deltaTime * 0.001); // deltaTime
-	drawRopePoints(points, args.ropeColour, args.ropeSize);
 	pop();
 }
 const { GamepadListener } = gamepad;

@@ -1,5 +1,3 @@
-const PRODUCTION = 0;
-// const PRODUCTION = 1;
 class Dictionary {
 	constructor() {
 		/** @type {Array<DictionaryEntries>} */
@@ -20,16 +18,22 @@ class Dictionary {
 			return e.value.constructor.name == classes;
 		})?.value;
 	}
-	/** @returns {GameObject[]} */
+	/** @returns {DictionaryEntries[]} */
 	getAllItemById(id = "") {
 		return _.filter(this.entries, (e) => {
 			return e.id == id;
 		});
 	}
-	/** @returns {GameObject[]} */
+	/** @returns {DictionaryEntries[]} */
 	getAllItemByClass(classes = "") {
 		return _.filter(this.entries, (e) => {
 			return e.value.constructor.name == classes;
+		});
+	}
+	/** @returns {DictionaryEntries[]} */
+	getAllCollidable() {
+		return _.filter(this.entries, (e) => {
+			return e.value.collidable;
 		});
 	}
 	proccessAll() {
@@ -79,7 +83,9 @@ class DictionaryEntries {
 		this.id = crypto.randomUUID();
 		/** @type {GameObject | t.GamepadWrapper | null} */
 		this.value = value ?? null;
-
+		if (this.value) {
+			this.value.id = this.id;
+		}
 		if (args[0]?.emit) {
 			// console.log("emiting", GameObjects.getItemByClass(args[0]?.recieverClass));
 
@@ -93,6 +99,8 @@ class DictionaryEntries {
 }
 class GameObject {
 	constructor(...args) {
+		console.log(args);
+
 		this.position = createVector(args[0]?.x ?? 0, args[0]?.y ?? 0);
 		this.dimension = createVector(args[0]?.width ?? 0, args[0]?.height ?? 0);
 		this.recieveReferences = args[0]?.recieveReferences ?? false;
@@ -109,6 +117,7 @@ class GameObject {
 class Camera extends GameObject {
 	constructor(...args) {
 		super({ ...args, x: width / 2, y: height / 2, recieveReferences: true });
+		this.collidable = false;
 		this.velocity = createVector();
 		this.acceleration = createVector();
 		this.targetPosition = createVector(width / 2, height / 2);
@@ -140,13 +149,11 @@ class Camera extends GameObject {
 		this.position.y += floor((this.targetPosition.y - this.position.y) * easeOutExpo2(deltaTime * 0.001));
 	}
 }
-
-const GameObjects = new Dictionary();
-const GameInputs = new Input();
-
 class Player extends GameObject {
 	constructor(...args) {
-		super({ ...args, width: 25 });
+		super({ ...args[0], width: args[0].width ?? 25 });
+		this.collidable = true;
+		this.colliding = false;
 		this.velocity = createVector();
 		this.acceleration = createVector();
 		this.speed = 125;
@@ -168,31 +175,51 @@ class Player extends GameObject {
 
 			this.acceleration.add(action);
 			this.velocity.add(this.acceleration);
+
+			let collidables = GameObjects.getAllCollidable();
+			let didCollide = false;
+			collidables.forEach((e) => {
+				if (e.id != this?.id) {
+					let obj = e.value;
+					// collideLineCircleVector();
+					if (collideCircleCircleVector(obj.position, obj.dimension.x, this.position, this.dimension.x)) {
+						didCollide = true;
+					}
+					let offset = p5.Vector.mult(this.velocity, deltaTime * 0.001);
+					if (collideCircleCircleVector(obj.position, obj.dimension.x, this.position.copy().add(offset), this.dimension.x)) {
+						let objectAngle = p5.Vector.sub(obj.position, this.position);
+						objectAngle.normalize().setMag(this.speed);
+						console.log(p5.Vector.sub(this.velocity, objectAngle));
+						this.velocity.sub(objectAngle);
+					}
+				}
+			});
+			this.colliding = didCollide;
+
 			this.position.add(p5.Vector.mult(this.velocity, deltaTime * 0.001));
 
 			if (this.velocity.mag() < this.speed * 0.25) {
 				this.velocity.set(0, 0);
 			} else {
 				this.velocity.mult(1 - easeOutExpo(deltaTime * 0.001));
-				// this.velocity.mult(0.8);
 			}
 			this.acceleration.set(0, 0);
 		}
 	}
 	render() {
 		push();
+		fill(this.colliding ? "red" : "white");
 		stroke(0);
 		circle(this.position.x, this.position.y, this.dimension.x);
-		if (!PRODUCTION) {
-			stroke("#c1121f").strokeWeight(4);
-			line(this.position.x, this.position.y, this.position.x + this.acceleration.x * 0.1, this.position.y + this.acceleration.y * 0.1);
-			stroke("#669bbc").strokeWeight(4);
-			line(this.position.x, this.position.y, this.position.x + this.velocity.x * 0.1, this.position.y + this.velocity.y * 0.1);
-		}
+		// if (!PRODUCTION) {
+		// 	stroke("#c1121f").strokeWeight(4);
+		// 	line(this.position.x, this.position.y, this.position.x + this.acceleration.x * 0.1, this.position.y + this.acceleration.y * 0.1);
+		// 	stroke("#669bbc").strokeWeight(4);
+		// 	line(this.position.x, this.position.y, this.position.x + this.velocity.x * 0.1, this.position.y + this.velocity.y * 0.1);
+		// }
 		pop();
 	}
 }
-
 class RopePoint {
 	//integrates motion equations per node without taking into account pos
 	//with other nodes...
@@ -262,29 +289,20 @@ class RopePoint {
 		this.next = null;
 	}
 }
-
 class Rope {
-	//generate an array of points suitable for a dynamic
-	//rope contour
 	static generate(start, end, resolution, mass, damping) {
 		const delta = p5.Vector.sub(end, start);
 		const len = p5.Vector.mag(delta);
-
 		let points = [];
 		const pointsLen = len / resolution;
-
 		for (let i = 0; i < pointsLen; i++) {
 			const percentage = i / (pointsLen - 1);
-
 			const lerpX = lerp(start.x, end.x, percentage);
 			const lerpY = lerp(start.y, end.y, percentage);
-
 			points[i] = new RopePoint(createVector(lerpX, lerpY), resolution);
 			points[i].mass = mass;
 			points[i].damping = damping;
 		}
-
-		//Link nodes into a doubly linked list
 		for (let i = 0; i < pointsLen; i++) {
 			const prev = i != 0 ? points[i - 1] : null;
 			const curr = points[i];
@@ -299,7 +317,8 @@ class Rope {
 		return points;
 	}
 
-	constructor(points, solverIterations) {
+	constructor(points, solverIterations, anchors) {
+		this._anchors = anchors;
 		this._points = points;
 		this.update = this.update.bind(this);
 		this._prevDelta = 0;
@@ -307,27 +326,80 @@ class Rope {
 
 		this.getPoint = this.getPoint.bind(this);
 	}
-
 	getPoint(index) {
 		return this._points[index];
 	}
-
 	update(gravity, dt) {
 		for (let i = 1; i < this._points.length - 1; i++) {
 			let point = this._points[i];
-
-			let accel = gravity.copy(); // { ...gravity };
-
+			let accel = gravity.copy();
 			RopePoint.integrate(point, accel, dt, this._prevDelta);
 		}
-
 		for (let iteration = 0; iteration < this._solverIterations; iteration++)
 			for (let i = 1; i < this._points.length - 1; i++) {
 				let point = this._points[i];
 				RopePoint.constrain(point);
 			}
-
 		this._prevDelta = dt;
+	}
+}
+class RopeManager {
+	constructor(options = { mode: "closed" || "single" }) {
+		/** @type {Array<Rope>} */
+		this.ropes = [];
+		/** @type {String} */
+		this.playerRef = [];
+		this.mode = options.mode ?? "closed";
+		this.args = {
+			start: createVector(0, 0),
+			end: createVector(0, 160),
+			resolution: 8,
+			mass: 0.88,
+			damping: 0.95,
+			gravity: createVector(0, 0),
+			solverIterations: 100,
+			ropeColour: color("#adb5bd"),
+			ropeSize: 4,
+		};
+	}
+	assignPlayerRef(ref = "") {
+		this.playerRef.push(ref);
+		return ref;
+	}
+	generate() {
+		Array(this.playerRef.length)
+			.fill(0)
+			.forEach((e, x) => {
+				points = Rope.generate(this.args.start, this.args.end, this.args.resolution, this.args.mass, this.args.damping);
+				this.ropes.push(new Rope(points, this.args.solverIterations, [this.playerRef[x], this.playerRef[(x + 1) % this.playerRef.length]]));
+			});
+	}
+	update() {
+		this.ropes.forEach((e) => {
+			if (e._anchors.length == 2) {
+				let pointfirst = e.getPoint(0);
+				pointfirst.pos.set(GameObjects.getItemById(e._anchors[0]).position);
+				let pointlast = e.getPoint(e._points.length - 1);
+				pointlast.pos.set(GameObjects.getItemById(e._anchors[1]).position);
+			}
+			e.update(createVector(0, 0), deltaTime * 0.001);
+		});
+	}
+	render() {
+		this.ropes.forEach((e) => {
+			let points = e._points;
+			let colour = this.args.ropeColour;
+			let lw = this.args.ropeSize;
+			for (let i = 0; i < points.length; i++) {
+				const p = points[i];
+				const prev = i > 0 ? points[i - 1] : null;
+				if (prev) {
+					stroke(colour);
+					strokeWeight(lw);
+					line(prev.pos.x, prev.pos.y, p.pos.x, p.pos.y);
+				}
+			}
+		});
 	}
 }
 

@@ -156,7 +156,7 @@ class Player extends GameObject {
 		this.colliding = false;
 		this.velocity = createVector();
 		this.acceleration = createVector();
-		this.speed = 125;
+		this.speed = 100;
 		this.input = {
 			controller: args?.[0]?.controller ?? false,
 			id: args?.[0]?.controlID ?? 0,
@@ -181,16 +181,37 @@ class Player extends GameObject {
 			collidables.forEach((e) => {
 				if (e.id != this?.id) {
 					let obj = e.value;
-					// collideLineCircleVector();
 					if (collideCircleCircleVector(obj.position, obj.dimension.x, this.position, this.dimension.x)) {
 						didCollide = true;
 					}
+					// let offset = p5.Vector.mult(this.velocity, deltaTime * 0);
 					let offset = p5.Vector.mult(this.velocity, deltaTime * 0.001);
-					if (collideCircleCircleVector(obj.position, obj.dimension.x, this.position.copy().add(offset), this.dimension.x)) {
-						let objectAngle = p5.Vector.sub(obj.position, this.position);
-						objectAngle.normalize().setMag(this.speed);
-						console.log(p5.Vector.sub(this.velocity, objectAngle));
-						this.velocity.sub(objectAngle);
+					let futurePosition = p5.Vector.add(this.position, offset);
+					if (collideCircleCircleVector(obj.position, obj.dimension.x, futurePosition, this.dimension.x)) {
+						let object1Mass = 100;
+						let object2Mass = 100;
+						let restitution = 0.1;
+
+						// Calculate the normal from the position of the objects
+						let normal = p5.Vector.sub(this.position, obj.position).normalize();
+
+						// Calculate the relative velocity
+						let relativeVelocity = p5.Vector.sub(this.velocity, obj.velocity);
+
+						// Calculate the impulse scalar
+						let impulseScalar = (-(1 + restitution) * relativeVelocity.dot(normal)) / (1 / object1Mass + 1 / object2Mass);
+
+						// Apply the impulse to update velocities
+						this.velocity.add(p5.Vector.mult(normal, impulseScalar / object1Mass));
+						obj.velocity.sub(p5.Vector.mult(normal, impulseScalar / object2Mass));
+
+						// Calculate overlap based on the radii of the circles
+						let overlap = p5.Vector.dist(this.position, obj.position) - (this.dimension.x / 2 + obj.dimension.x / 2);
+
+						// Move objects apart based on the collision normal
+						let separation = p5.Vector.mult(normal, -overlap / 2);
+						this.position.add(separation);
+						obj.position.sub(separation);
 					}
 				}
 			});
@@ -211,12 +232,12 @@ class Player extends GameObject {
 		fill(this.colliding ? "red" : "white");
 		stroke(0);
 		circle(this.position.x, this.position.y, this.dimension.x);
-		// if (!PRODUCTION) {
-		// 	stroke("#c1121f").strokeWeight(4);
-		// 	line(this.position.x, this.position.y, this.position.x + this.acceleration.x * 0.1, this.position.y + this.acceleration.y * 0.1);
-		// 	stroke("#669bbc").strokeWeight(4);
-		// 	line(this.position.x, this.position.y, this.position.x + this.velocity.x * 0.1, this.position.y + this.velocity.y * 0.1);
-		// }
+		if (!PRODUCTION) {
+			stroke("#c1121f").strokeWeight(4);
+			line(this.position.x, this.position.y, this.position.x + this.acceleration.x * 0.1, this.position.y + this.acceleration.y * 0.1);
+			stroke("#669bbc").strokeWeight(4);
+			line(this.position.x, this.position.y, this.position.x + this.velocity.x * 0.1, this.position.y + this.velocity.y * 0.1);
+		}
 		pop();
 	}
 }

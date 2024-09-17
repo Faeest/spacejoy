@@ -7,19 +7,6 @@ let gamecanvas;
 let GameRopes;
 let args, points, rope;
 
-const drawRopePoints = (points, colour, lw) => {
-	for (i = 0; i < points.length; i++) {
-		const p = points[i];
-		const prev = i > 0 ? points[i - 1] : null;
-
-		if (prev) {
-			stroke(colour);
-			strokeWeight(lw);
-			line(prev.pos.x, prev.pos.y, p.pos.x, p.pos.y);
-		}
-	}
-};
-
 function setup() {
 	GameRopes = new RopeManager({ mode: "closed" });
 	let dimension;
@@ -32,9 +19,9 @@ function setup() {
 	gamecanvas.canvas.parentElement.classList.add("d-flex", "justify-content-center");
 	frameRate(60);
 	init(new Camera({ recieveReferences: true }));
-	init(new Player({ controlID: 1, width: 50, height: 50, controller: false }), { emit: true, recieverClass: "Camera" });
-	init(new Player({ controlID: 0, width: 50, height: 50, controller: false, y: 50 }), { emit: true, recieverClass: "Camera" });
-	init(new Player({ controlID: 0, width: 50, height: 50, controller: true, y: 100 }), { emit: true, recieverClass: "Camera" });
+	init(new Player({ controlID: 1, width: 50, controller: false }), { emit: true, recieverClass: "Camera" });
+	init(new Player({ controlID: 0, width: 50, controller: false, y: 50 }), { emit: true, recieverClass: "Camera" });
+	init(new Player({ controlID: 0, width: 50, controller: true, y: 100 }), { emit: true, recieverClass: "Camera" });
 
 	_.forEach(GameObjects.getAllItemByClass("Player"), (e) => {
 		GameRopes.assignPlayerRef(e.id);

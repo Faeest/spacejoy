@@ -51,9 +51,9 @@ class Utlities_class {
 				}
 				if (e.constructor.name == "Player") {
 					let addition = p5.Vector.mult(e.velocity, deltaTime * 0.001);
-					text(e.constructor.name + " : " + addition.x + ", " + addition.y, 10, 60 + (x + 1) * 40);
+					text(e.constructor.name + " : " + round(addition.x, 2) + " X , " + round(addition.y, 2) + "Y", 10, 60 + (x + 1) * 40);
 				}
-				text(e.constructor.name + " : " + e.position.x + ", " + e.position.y, 10, 40 + (x + 1) * 40);
+				text(e.constructor.name + " : " + round(e.position.x, 2) + "X , " + round(e.position.y, 2) + "Y", 10, 40 + (x + 1) * 40);
 			});
 			pop();
 		}

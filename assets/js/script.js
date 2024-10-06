@@ -1,83 +1,63 @@
 const PRODUCTION = 0;
+const GlobalDeadZoneThreshold = 0.01;
 // const PRODUCTION = 1;
+window._p5play_gtagged = false;
+
+/** @type {Dictionary} */
+const GameGUIs = new Dictionary();
+
+/** @type {Dictionary} */
 const GameObjects = new Dictionary();
+
 const GameInputs = new Input();
 let gamecanvas;
-/** @type {RopeManager} */
-let GameRopes;
-let args, points, rope;
+let gameRopes;
+/** @type {Dictionary} */
+const GameFonts = new Dictionary();
 
+function preload() {
+	GameFonts.assignEntry(loadFont("./assets/font/minecrafter.reg.ttf"));
+	GameFonts.assignEntry(loadFont("./assets/font/minecraft.ttf"));
+}
 function setup() {
-	GameRopes = new RopeManager({ mode: "closed" });
-	let dimension;
-	if (windowWidth > windowHeight) {
-		dimension = windowHeight < 600 ? windowHeight : 600;
-	} else {
-		dimension = windowWidth < 600 ? windowWidth : 600;
-	}
-	gamecanvas = createCanvas(dimension, dimension);
-	gamecanvas.canvas.parentElement.classList.add("d-flex", "justify-content-center");
-	frameRate(60);
-	init(new Camera({ recieveReferences: true }));
-	init(new Player({ controlID: 1, width: 50, controller: false }), { emit: true, recieverClass: "Camera" });
-	init(new Player({ controlID: 0, width: 50, controller: false, y: 50 }), { emit: true, recieverClass: "Camera" });
-	init(new Player({ controlID: 0, width: 50, controller: true, y: 100 }), { emit: true, recieverClass: "Camera" });
+	p5play.renderStats = true;
+	camera.x = 0;
+	camera.y = 0;
+	GameObjects.assignEntry(new Canvas(600, 600));
+	world.gravity = { x: 0, y: 0 };
+	sceneManager = new SceneManager();
+	sceneManager.addScene(MenuScene);
+	sceneManager.addScene(GameScene);
 
-	_.forEach(GameObjects.getAllItemByClass("Player"), (e) => {
-		GameRopes.assignPlayerRef(e.id);
-	});
-	GameRopes.generate();
-	frameRate(60);
+	sceneManager.showNextScene();
 }
-
 function draw() {
-	listener.update();
-	background(0);
-	GameObjects.getItemByClass("Camera").proccess();
-	_.forEach(GameObjects.getAllItemByClass("Player"), (e) => {
-		e.value.proccess();
-	});
-	Utilities.renderGrid(GameObjects.getItemByClass("Camera").position);
-	Utilities.renderFPS();
-	Utilities.renderDelta();
-	Utilities.debug([GameObjects.getItemByClass("Camera"), ...GameObjects.getAllItemByClass("Player")]);
-	push();
-	translate(GameObjects.getItemByClass("Camera").position);
-	GameRopes.update();
-	GameRopes.render();
-	_.forEach(GameObjects.getAllItemByClass("Player"), (e) => {
-		e.value.render();
-	});
-	if (listener.handlers[0]) {
-		fill(255)
-			.noStroke()
-			.strokeWeight(0)
-			.text(listener.handlers[0].axes[0] + " " + listener.handlers[0].axes[1], 10, 20);
-	}
-	pop();
+	// background(0, 0.3);
+	sceneManager.draw();
+	// Utilities.renderFPS();
+	// Utilities.renderDelta();
+	Utilities.debug([...GameObjects.getAllItemByType("player")]);
 }
-const { GamepadListener } = gamepad;
-const listener = new GamepadListener({ precision: 2 });
+function centerCamera() {
+	let centered = getMedianPlayerPosition();
+	let cameraAddition = [_.round((centered.x - camera.x) * easeOutExpo2(deltaTime * 0.001)), _.round((centered.y - camera.y) * easeOutExpo2(deltaTime * 0.001))];
+	camera.x += cameraAddition[0];
+	camera.y += cameraAddition[1];
+}
+function getMedianPlayerPosition() {
+	const players = GameObjects.getAllItemByType("player");
 
-// listener.on("gamepad:button", (event) => {
-// 	const {
-// 		index, // Gamepad index: Number [0-3].
-// 		button, // Button index: Number [0-N].
-// 		value, // Current value: Number between 0 and 1. Float in analog mode, integer otherwise.
-// 		pressed, // Native GamepadButton pressed value: Boolean.
-// 		gamepad, // Native Gamepad object
-// 	} = event.detail;
-// 	if (pressed) {
-// 		console.log(index, button, value);
-// 	}
-// });
-// listener.on("gamepad:axis", (event) => {
-// 	const {
-// 		index, // Gamepad index: Number [0-3].
-// 		axis, // Axis index: Number [0-N].
-// 		value, // Current value: Number between -1 and 1. Float in analog mode, integer otherwise.
-// 		gamepad, // Native Gamepad object
-// 	} = event.detail;
-// 	console.log(index, (axis > 1 ? "right" : "left") + ":" + (axis ? "vert" : "hor"), value);
-// });
-listener.start();
+	if (players.length === 0) {
+		return createVector(0, 0);
+	}
+
+	// Collect x and y positions separately
+	const xaxis = players.map((player) => player.value.position.x);
+	const yaxis = players.map((player) => player.value.position.y);
+
+	// Calculate the median positions
+	const medianX = _.mean(xaxis);
+	const medianY = _.mean(yaxis);
+
+	return createVector(medianX, medianY);
+}

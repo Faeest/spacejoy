@@ -5,55 +5,59 @@ class Utlities_class {
 		this.gridResolution = 30;
 	}
 	renderFPS() {
+		camera.off();
 		if (frameCount % 10 == 0) {
 			this.currentFPS = round(frameRate());
 		}
 		push();
-		fill(255)
-			.noStroke()
-			.strokeWeight(0)
-			.text(this.currentFPS + " / s", 10, 20);
+		fill(255);
+		noStroke();
+		strokeWeight(0);
+		text(this.currentFPS + " / s", 10, height);
 		pop();
 		return;
 	} //! FPS counter
 	renderDelta() {
+		camera.off();
 		push();
-		fill(255)
-			.noStroke()
-			.strokeWeight(0)
-			.text(round(round(deltaTime)) + " ms", 10, 40);
+		fill(255);
+		noStroke();
+		strokeWeight(0);
+		text(round(deltaTime) + " ms", 10, height - 20);
 		pop();
 		return;
 	} //! Delta Time
-	renderGrid(anchor = createVector(0, 0)) {
-		push();
-		stroke(50);
-		for (let i = -10; i < 30; i++) {
-			if (i * this.gridResolution < width * 1.5) {
-				let xpos = i * this.gridResolution + ((anchor.x * 1) % this.gridResolution);
-				line(xpos, -100, xpos, height + 100);
-			}
-			if (i * this.gridResolution < height * 1.5) {
-				let ypox = i * this.gridResolution + ((anchor.y * 1) % this.gridResolution);
-				line(-100, ypox, width + 100, ypox);
-			}
+	renderGrid(anchor = createVector(0, 0), gridResolution = 40) {
+		camera.off();
+		push(); // Save the current state
+		stroke(50); // Set the line color for grid lines
+		// Calculate horizontal grid lines
+		for (let i = -10; i * gridResolution <= width * 1.5; i++) {
+			let xpos = i * gridResolution + ((-anchor.x * 1) % gridResolution);
+			line(xpos, -100, xpos, height + 100);
 		}
-		pop();
-		return;
+		// Calculate vertical grid lines
+		for (let i = -10; i * gridResolution <= height * 1.5; i++) {
+			let ypos = i * gridResolution + ((-anchor.y * 1) % gridResolution);
+			line(-100, ypos, width + 100, ypos);
+		}
+		pop(); // Restore the previous state
 	}
 	debug(...args) {
 		if (args[0]) {
 			push();
-			fill(255).noStroke().strokeWeight(0);
+			fill(255);
+			noStroke();
+			strokeWeight(0);
 			args[0]?.forEach((e, x) => {
 				if (e?.value) {
 					e = e.value;
 				}
-				if (e.constructor.name == "Player") {
+				if (e?.type == "player" || e?.constructor?.name == "Player") {
 					let addition = p5.Vector.mult(e.velocity, deltaTime * 0.001);
-					text(e.constructor.name + " : " + round(addition.x, 2) + " X , " + round(addition.y, 2) + "Y", 10, 60 + (x + 1) * 40);
+					text("movement" + " : " + round(addition.x, 2) + " X , " + round(addition.y, 2) + "Y", 10, height - (x + 1) * 40);
 				}
-				text(e.constructor.name + " : " + round(e.position.x, 2) + "X , " + round(e.position.y, 2) + "Y", 10, 40 + (x + 1) * 40);
+				text((e?.type ?? e?.constructor?.name) + " : " + round(e?.position?.x || e?.x, 2) + "X , " + round(e?.position?.y || e?.y, 2) + "Y", 10, height - 20 - (x + 1) * 40);
 			});
 			pop();
 		}

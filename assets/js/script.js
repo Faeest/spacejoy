@@ -23,7 +23,7 @@ function setup() {
 	p5play.renderStats = true;
 	camera.x = 0;
 	camera.y = 0;
-	GameObjects.assignEntry(new Canvas(600, 600));
+	GameObjects.assignEntry(new Canvas(600, 600), { type: "canvas" });
 	world.gravity = { x: 0, y: 0 };
 	sceneManager = new SceneManager();
 	sceneManager.addScene(MenuScene);
@@ -32,10 +32,11 @@ function setup() {
 	sceneManager.showNextScene();
 }
 function draw() {
-	// background(0, 0.3);
+	push();
 	sceneManager.draw();
+	// Utilities.renderStats();
 	// Utilities.renderFPS();
-	// Utilities.renderDelta();
+	pop();
 	Utilities.debug([...GameObjects.getAllItemByType("player")]);
 }
 function centerCamera() {
@@ -43,6 +44,8 @@ function centerCamera() {
 	let cameraAddition = [_.round((centered.x - camera.x) * easeOutExpo2(deltaTime * 0.001)), _.round((centered.y - camera.y) * easeOutExpo2(deltaTime * 0.001))];
 	camera.x += cameraAddition[0];
 	camera.y += cameraAddition[1];
+	// camera.x = centered.x;
+	// camera.y = centered.y;
 }
 function getMedianPlayerPosition() {
 	const players = GameObjects.getAllItemByType("player");

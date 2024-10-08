@@ -16,9 +16,13 @@ class Dictionary {
 	}
 	/** @returns {GameObject} */
 	getItemByType(type = "") {
-		return _.find(this.entries, (e) => {
-			return e.type == type;
-		})?.value;
+		const types = Array.isArray(type) ? type : [type];
+		for (const entry of this.entries) {
+			if (types.includes(entry.type)) {
+				return entry.value;
+			}
+		}
+		return;
 	}
 	/** @returns {GameObject} */
 	getItemByClass(classes = "") {
@@ -34,9 +38,9 @@ class Dictionary {
 	}
 	/** @returns {DictionaryEntries[]} */
 	getAllItemByType(type = "") {
-		return _.filter(this.entries, (e) => {
-			return e.type == type;
-		});
+		const types = Array.isArray(type) ? type : [type];
+
+		return this.entries.filter((e) => types.includes(e.type));
 	}
 	/** @returns {DictionaryEntries[]} */
 	getAllItemByClass(classes = "") {
@@ -168,9 +172,33 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 	this.Player = class Player extends Sprite {
 		constructor(x, y, w, h, collider, ...args) {
 			super(x, y, w, h, collider);
-			this.movementSpeed = args[0]?.movementSpeed || 100;
+			this.stats = {
+				hp: {
+					max: 100,
+					current: 100,
+					regen: 1,
+					degen: 0,
+				},
+				mp: {
+					max: 100,
+					current: 100,
+					regen: 1,
+					degen: 0,
+				},
+				speed: args[0]?.movementSpeed || 100,
+				speedMultiplier: 1,
+				mass: args[0]?.mass || 100,
+			};
+			this.style = {
+				black: color("#000"),
+				white: color("#fff"),
+				gray: color("#808080"),
+				grayblack: color("#404040"),
+				hp: color("#EF0008"),
+				mp: color("#005E99"),
+			};
+			this.skills = {};
 			this.friction = args[0]?.friction || 10;
-			this.mass = args[0]?.mass || 100;
 			this.autoDraw = false;
 			this.autoUpdate = false;
 			this.input = {
@@ -178,6 +206,7 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 				controller: args?.[0]?.controller ?? false,
 				id: args?.[0]?.controlID ?? 0,
 			};
+			this.lastHeading = 0;
 			this.rope = {
 				ref: [],
 				dist: 100,
@@ -187,21 +216,23 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 			if (this.input.searchControl) {
 				this.input = GameInputs.assign() || this.input;
 			}
+			GameObjects.getAllItemByType("environtment").forEach((e) => {
+				e = e.value;
+				if (this.overlapping(e)) {
+					e.collide(this, this.overlapping(e));
+				}
+			});
 			gameRopes.value.getConnectedRope(this.id).forEach((ee) => {
 				let objId = ee;
 				let obj = GameObjects.getItemById(objId);
 				let distance = p5.Vector.dist(this.position, obj.position);
 				let maxDist = 100;
 				if (distance > maxDist) {
-					// Calculate the pull force
 					let forceDirection = p5.Vector.sub(this.position, obj.position).normalize();
-					// Proportional pull
 					let forceMagnitude = ceil(distance - maxDist * 0.95);
 					let force = p5.Vector.mult(forceDirection, forceMagnitude);
 					let impulseScalar = -1;
-					// Apply the pull force to this player and the obj
-					this.velocity.add(p5.Vector.mult(force, impulseScalar / this.mass));
-					// obj.velocity.sub(p5.Vector.mult(force, impulseScalar / obj.mass));
+					this.velocity.add(p5.Vector.mult(force, impulseScalar / this.stats.mass));
 				}
 			});
 			camera.on();
@@ -209,18 +240,70 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 			stroke(0);
 			let vel = GameInputs.movement(this.input);
 			if (vel) {
-				let { x, y } = vel.normalize().mult(this.movementSpeed);
+				let { x, y } = vel.normalize().mult(this.stats.speed);
 				this.applyForceScaled(x, y);
 			}
+			if (this.velocity.mag() > 1) {
+				this.lastHeading = round(this.velocity.heading());
+			} else if (this.lastHeading === undefined) {
+				this.lastHeading = 0;
+			}
 			this.velocity.mult(1 - easeOutExpo(deltaTime * 0.001));
+			pop();
+		}
+		draw() {
+			if (!PRODUCTION) {
+				push();
+				stroke(lerpColor(this.color, this.style.white, 0.25));
+				strokeCap(SQUARE);
+				strokeWeight(10);
+				let dirLine = createVector(1, 0)
+					.normalize()
+					.setHeading(this.lastHeading)
+					.mult(this.w * 0.65);
+				line(this.x, this.y, this.x + dirLine.x, this.y + dirLine.y);
+				pop();
+			}
+			this._display();
 		}
 		draw2() {
-			if (!PRODUCTION) {
-				stroke("#669bbc");
-				strokeWeight(4);
-				line(this.x, this.y, this.x + this.velocity.x * 5, this.y + this.velocity.y * 5);
+			let basePos = createVector(this.x - 25, this.y - this.w * 0.5);
+			let toPos = createVector(this.x + 25, 0);
+			this.weight = 4;
+			push();
+			strokeCap(SQUARE);
+			noStroke();
+			let shown = 0;
+			if (this.stats.mp.current < this.stats.mp.max) {
+				shown += 1;
+				fill(lerpColor(this.style.mp, this.style.gray, 0.8));
+				rect(basePos.x, basePos.y - shown * 6, 50, this.weight);
+				fill(this.style.mp);
+				rect(basePos.x, basePos.y - shown * 6, (50 / this.stats.mp.max) * this.stats.mp.current, this.weight);
 			}
+			if (this.stats.hp.current < this.stats.hp.max) {
+				shown += 1;
+				fill(lerpColor(this.style.hp, this.style.gray, 0.8));
+				rect(basePos.x, basePos.y - shown * 6, 50, this.weight);
+				fill(this.style.hp);
+				rect(basePos.x, basePos.y - shown * 6, (50 / this.stats.hp.max) * this.stats.hp.current, this.weight);
+			}
+
 			pop();
+		}
+	};
+	this.Environtment = class Environtment extends Sprite {
+		constructor(x, y, w, h, collider) {
+			super(x, y, w, h, collider);
+			this.autoDraw = false;
+		}
+	};
+	this.Mud = class Mud extends this.Environtment {
+		constructor(x, y, w, h, collider) {
+			super(x, y, w, h, collider);
+		}
+		collide(target) {
+			target.vel.mult(1 - 0.5);
 		}
 	};
 	this.RopePoint = class {

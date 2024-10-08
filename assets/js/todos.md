@@ -1,5 +1,3 @@
-Here's a reorganized to-do list that breaks down the tasks into smaller, checkable segments. Each task is categorized, making it easier to navigate towards the features you need to implement.
-
 ### To-Do List
 🟩 Done
 🟦 On Progress

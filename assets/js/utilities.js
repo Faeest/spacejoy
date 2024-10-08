@@ -4,29 +4,45 @@ class Utlities_class {
 		this.currentDelta = 0;
 		this.gridResolution = 30;
 	}
-	renderFPS() {
+	renderStats() {
+		let size = 32;
+		let padding = 0.65;
+		let textAnchor = "Frames :";
 		camera.off();
 		if (frameCount % 10 == 0) {
 			this.currentFPS = round(frameRate());
+			this.currentDelta = round(deltaTime);
 		}
 		push();
 		fill(255);
+		textSize(16);
 		noStroke();
 		strokeWeight(0);
-		text(this.currentFPS + " / s", 10, height);
+		textAlign(LEFT);
+		textFont(GameFonts.index(1).value);
+		text("Frames", 10, size * padding * 1);
+		text(":  " + this.currentFPS + " /s", 10 + textWidth(textAnchor), size * padding * 1);
+		text("Latency", 10, size * padding * 2);
+		text(":  " + round(this.currentDelta) + " ms", 10 + textWidth(textAnchor), size * padding * 2);
+		text("Sprites", 10, size * padding * 3);
+		text(":  " + p5play.spritesDrawn, 10 + textWidth(textAnchor), size * padding * 3);
 		pop();
 		return;
-	} //! FPS counter
-	renderDelta() {
+	} //! status renderer
+	renderFPS() {
+		let size = 32;
 		camera.off();
+		if (frameCount % 10 == 0) {
+			this.currentFPS = round(frameRate());
+			this.currentDelta = round(deltaTime);
+		}
 		push();
 		fill(255);
-		noStroke();
-		strokeWeight(0);
-		text(round(deltaTime) + " ms", 10, height - 20);
+		textSize(16).textAlign(LEFT).textFont(GameFonts.index(1).value);
+		text(this.currentFPS + " FPS", size * 0.4, size * 0.7);
 		pop();
 		return;
-	} //! Delta Time
+	} //! status renderer
 	renderGrid(anchor = createVector(0, 0), gridResolution = 40) {
 		camera.off();
 		push(); // Save the current state

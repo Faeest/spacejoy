@@ -14,7 +14,7 @@ function GameScene() {
 			gameRopes.value.generate();
 		}
 
-		worldEnvirontment = new Mud(100, 0, 50);
+		worldEnvirontment = new Poison(100, 0, 50);
 		GameObjects.assignEntry(worldEnvirontment, { type: "environtment" });
 		frameRate(60);
 	};

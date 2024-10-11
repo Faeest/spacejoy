@@ -186,6 +186,7 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 					degen: 0,
 				},
 				speed: args[0]?.movementSpeed || 100,
+				_speedMultiplier: 1,
 				speedMultiplier: 1,
 				mass: args[0]?.mass || 100,
 			};
@@ -207,21 +208,46 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 				id: args?.[0]?.controlID ?? 0,
 			};
 			this.lastHeading = 0;
+			this._allowMove = true;
+			this.allowMove = true;
 			this.rope = {
 				ref: [],
 				dist: 100,
 			};
 		}
-		update2() {
-			if (this.input.searchControl) {
-				this.input = GameInputs.assign() || this.input;
+		setSpeedMultiplier(value = 1, persist = false) {
+			if (!persist) {
+				this.stats.speedMultiplier = value;
+			} else {
+				this.stats._speedMultiplier = value;
+				this.stats.speedMultiplier = value;
 			}
+		}
+		immovable(persist = false) {
+			if (!persist) {
+				this.allowMove = false;
+			} else {
+				this._allowMove = false;
+				this.allowMove = false;
+			}
+		}
+		update() {
+			this.allowMove = this._allowMove;
+			this.stats.speedMultiplier = this.stats._speedMultiplier;
+			this.stats.hp.current = max(0, this.stats.hp.current);
+			this.stats.mp.current = max(0, this.stats.mp.current);
+
 			GameObjects.getAllItemByType("environtment").forEach((e) => {
 				e = e.value;
 				if (this.overlapping(e)) {
 					e.collide(this, this.overlapping(e));
 				}
 			});
+		}
+		update2() {
+			if (this.input.searchControl) {
+				this.input = GameInputs.assign() || this.input;
+			}
 			gameRopes.value.getConnectedRope(this.id).forEach((ee) => {
 				let objId = ee;
 				let obj = GameObjects.getItemById(objId);
@@ -239,36 +265,35 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 			push();
 			stroke(0);
 			let vel = GameInputs.movement(this.input);
-			if (vel) {
-				let { x, y } = vel.normalize().mult(this.stats.speed);
+			if (vel && this.allowMove) {
+				let { x, y } = vel.normalize().mult(this.stats.speed * this.stats.speedMultiplier);
 				this.applyForceScaled(x, y);
 			}
-			if (this.velocity.mag() > 1) {
+			if (this.velocity.mag() > 0.1) {
 				this.lastHeading = round(this.velocity.heading());
 			} else if (this.lastHeading === undefined) {
 				this.lastHeading = 0;
 			}
 			this.velocity.mult(1 - easeOutExpo(deltaTime * 0.001));
+
 			pop();
+			this.allowMove = null;
 		}
 		draw() {
-			if (!PRODUCTION) {
-				push();
-				stroke(lerpColor(this.color, this.style.white, 0.25));
-				strokeCap(SQUARE);
-				strokeWeight(10);
-				let dirLine = createVector(1, 0)
-					.normalize()
-					.setHeading(this.lastHeading)
-					.mult(this.w * 0.65);
-				line(this.x, this.y, this.x + dirLine.x, this.y + dirLine.y);
-				pop();
-			}
+			push();
+			fill(lerpColor(this.color, this.style.white, 0.25));
+			stroke("black");
+			strokeCap(SQUARE);
+			strokeWeight(1);
+			rectMode(CENTER);
+			translate(this.x, this.y);
+			rotate(this.lastHeading);
+			rect(this.w * 0.5, 0, this.w * 0.3, this.w * 0.3);
+			pop();
 			this._display();
 		}
 		draw2() {
 			let basePos = createVector(this.x - 25, this.y - this.w * 0.5);
-			let toPos = createVector(this.x + 25, 0);
 			this.weight = 4;
 			push();
 			strokeCap(SQUARE);
@@ -299,11 +324,32 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 		}
 	};
 	this.Mud = class Mud extends this.Environtment {
-		constructor(x, y, w, h, collider) {
+		constructor(x, y, w, h, collider, power = 0.1) {
 			super(x, y, w, h, collider);
+			this.power = power;
+			this.color = lerpColor(color("#6b3620"), color("#fff"), (1 - power) * 0.4);
+			this.color.setAlpha(55 + 200 * this.power);
+		}
+		_customUpdate() {}
+		collide(target) {
+			target.setSpeedMultiplier(1 - this.power);
+			// target.stats.hp.current -= 20 * (deltaTime * 0.001);
+			// target.vel.mult(1 - easeOutExpo2(deltaTime * 0.001));
+			// target.velocity.mult(0);
+			// if (round(millis() * 0.001) % 2) {
+			// 	target.immovable();
+			// }
+		}
+	};
+	this.Poison = class Poison extends this.Environtment {
+		constructor(x, y, w, h, collider, dps = 20) {
+			super(x, y, w, h, collider);
+			this.dps = dps;
+			this.color = lerpColor(color("#1C7D51"), color("#26AB6F"), 1 - min(10, this.dps) * 0.1);
+			this.color.setAlpha(50 + 150 * (min(10, this.dps) * 0.1));
 		}
 		collide(target) {
-			target.vel.mult(1 - 0.5);
+			target.stats.hp.current -= this.dps * (deltaTime * 0.001);
 		}
 	};
 	this.RopePoint = class {

@@ -15,7 +15,7 @@
      - [ 🟥 ] Quit
 
 2. **In-Game UI Components**
-   - [ ] Design health bar
+   - [ 🟩 ] Design health bar
    - [ ] Implement stamina indicators
    - [ ] Create ability cooldown display
    - [ ] Develop interactive inventory/skills UI during gameplay
@@ -29,14 +29,14 @@
 #### Core Functions (High Priority)
 
 1. **Implement Classes**
-   - [ ] Design MMORPG-style class archetypes
-   - [ ] Define abilities for each class
-   - [ ] Determine strengths and weaknesses for each class
+   - [ 🟥 ] Design MMORPG-style class archetypes
+   - [ 🟥 ] Define abilities for each class
+   - [ 🟥 ] Determine strengths and weaknesses for each class
 
-2. **HP and Stamina System**
-   - [ ] Implement mechanics for player health
-   - [ ] Integrate stamina mechanics
-   - [ ] Create UI elements for displaying HP and stamina
+2. **HP and Mana System**
+   - [ 🟩 ] Implement mechanics for player health
+   - [ ] Integrate mana mechanics
+   - [ 🟩 ] Create UI elements for displaying HP and MP
 
 3. **Auto Aim Mechanic for Ranged Weapons**
    - [ ] Develop auto-aim system
@@ -87,8 +87,8 @@
    - [ ] Implement random generation logic for power-ups
 
 2. **Slowdowns & Debuffs**
-   - [ ] Create environmental hazards (e.g., horns, mud)
-   - [ ] Implement effects for players entering hazardous areas
+   - [ 🟩 ] Create environmental hazards (e.g., horns, mud)
+   - [ 🟩 ] Implement effects for players entering hazardous areas
 
 3. **Experience Points System**
    - [ ] Develop a reward system for experience points

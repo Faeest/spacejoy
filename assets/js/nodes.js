@@ -157,18 +157,16 @@ class DictionaryEntries {
 		if (this.value) {
 			this.value.id = this.id;
 		}
-		if (args[0]?.emit) {
-			// console.log("emiting", GameObjects.getItemByClass(args[0]?.recieverClass));
-
-			if (args[0]?.recieverClass) {
-				if (GameObjects.getItemByClass(args[0]?.recieverClass)) {
-					GameObjects.getItemByClass(args[0]?.recieverClass).assignReferences(this.id);
-				}
-			}
-		}
 	}
 }
 p5.prototype.registerMethod("beforeSetup", function nodeInit() {
+	//
+	// 		*****************************************
+	// 		*                                       *
+	// 		*              Player CLass             *
+	// 		*                                       *
+	// 		*****************************************
+
 	this.Player = class Player extends Sprite {
 		constructor(x, y, w, h, collider, ...args) {
 			super(x, y, w, h, collider);
@@ -176,12 +174,16 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 				hp: {
 					max: 100,
 					current: 100,
+					_current: 100,
+					_differentiate: 0,
 					regen: 1,
 					degen: 0,
 				},
 				mp: {
 					max: 100,
 					current: 100,
+					_current: 100,
+					_differentiate: 0,
 					regen: 1,
 					degen: 0,
 				},
@@ -198,6 +200,7 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 				hp: color("#EF0008"),
 				mp: color("#005E99"),
 			};
+			this.layer = 10;
 			this.skills = {};
 			this.friction = args[0]?.friction || 10;
 			this.autoDraw = false;
@@ -215,6 +218,13 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 				dist: 100,
 			};
 		}
+
+		/**
+		 * @brief Set speed property for 1 frame or permanent
+		 * @param {int} value
+		 * @param {bool} persist
+		 * @return {void}
+		 */
 		setSpeedMultiplier(value = 1, persist = false) {
 			if (!persist) {
 				this.stats.speedMultiplier = value;
@@ -223,20 +233,51 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 				this.stats.speedMultiplier = value;
 			}
 		}
-		immovable(persist = false) {
+
+		/**
+		 * @brief Set move permission property for 1 frame or permanent
+		 * @param {bool} value
+		 * @param {bool} persist
+		 * @return {void}
+		 */
+		setMovePermission(value = false, persist = false) {
 			if (!persist) {
-				this.allowMove = false;
+				this.allowMove = value;
 			} else {
-				this._allowMove = false;
-				this.allowMove = false;
+				this._allowMove = value;
+				this.allowMove = value;
 			}
 		}
 		update() {
-			this.allowMove = this._allowMove;
+			// *******  🔽  Regen Mechanics  🔽  *******
+			if (this.stats.hp.current < this.stats.hp.max) {
+				this.stats.hp.current += (-this.stats.hp.degen + this.stats.hp.regen) * deltaTime * 0.001;
+				this.stats.mp.current += (-this.stats.mp.degen + this.stats.mp.regen) * deltaTime * 0.001;
+			}
+
+			// *******  🔽  Check and Show Damage notification  🔽  *******
+			if (this.stats.hp.current > 0 && this.stats.hp.current != this.stats.hp._current) {
+				this.stats.hp._differentiate += this.stats.hp.current - this.stats.hp._current;
+			}
+			if (abs(this.stats.hp._differentiate) >= 1) {
+				console.log(round(this.stats.hp._differentiate, 1));
+				this.stats.hp._differentiate = 0;
+			}
+
+			// *******  🔽  Update Player Properties value  🔽  *******
 			this.stats.speedMultiplier = this.stats._speedMultiplier;
+			this.allowMove = this._allowMove;
+
 			this.stats.hp.current = max(0, this.stats.hp.current);
 			this.stats.mp.current = max(0, this.stats.mp.current);
 
+			this.stats.hp.current = min(this.stats.hp.max, this.stats.hp.current);
+			this.stats.mp.current = min(this.stats.mp.max, this.stats.mp.current);
+
+			this.stats.hp._current = this.stats.hp.current;
+			this.stats.mp._current = this.stats.mp.current;
+
+			// *******  🔽  Check and Update Player state when overlapping with environment  🔽  *******
 			GameObjects.getAllItemByType("environtment").forEach((e) => {
 				e = e.value;
 				if (this.overlapping(e)) {
@@ -313,45 +354,113 @@ p5.prototype.registerMethod("beforeSetup", function nodeInit() {
 				fill(this.style.hp);
 				rect(basePos.x, basePos.y - shown * 6, (50 / this.stats.hp.max) * this.stats.hp.current, this.weight);
 			}
-
 			pop();
 		}
 	};
+
+	// 		*****************************************
+	// 		*                                       *
+	// 		*              Environments             *
+	// 		*                                       *
+	// 		*****************************************
+
 	this.Environtment = class Environtment extends Sprite {
-		constructor(x, y, w, h, collider) {
-			super(x, y, w, h, collider);
+		constructor(base = { x: 0, y: 0, w: 0, h: 0, collider: "dynamic" }) {
+			super(base.x, base.y, base.w, base.h, base.collider);
 			this.autoDraw = false;
+			this.layer = 1;
 		}
 	};
 	this.Mud = class Mud extends this.Environtment {
-		constructor(x, y, w, h, collider, power = 0.1) {
-			super(x, y, w, h, collider);
+		constructor(base = { x: 0, y: 0, w: 0, h: 0, collider: "dynamic" }, power = 0.1) {
+			super(base);
 			this.power = power;
-			this.color = lerpColor(color("#6b3620"), color("#fff"), (1 - power) * 0.4);
-			this.color.setAlpha(55 + 200 * this.power);
+			this._color = lerpColor(color("#6b3620"), color("#fff"), (1 - power) * 0.4);
+			this.color = this._color;
+			this._color.setAlpha(55 + 200 * this.power);
 		}
-		_customUpdate() {}
+		_customUpdate() {
+			this.color = this._color;
+		}
 		collide(target) {
 			target.setSpeedMultiplier(1 - this.power);
-			// target.stats.hp.current -= 20 * (deltaTime * 0.001);
-			// target.vel.mult(1 - easeOutExpo2(deltaTime * 0.001));
-			// target.velocity.mult(0);
-			// if (round(millis() * 0.001) % 2) {
-			// 	target.immovable();
-			// }
 		}
 	};
 	this.Poison = class Poison extends this.Environtment {
-		constructor(x, y, w, h, collider, dps = 20) {
-			super(x, y, w, h, collider);
+		constructor(base = { x: 0, y: 0, w: 0, h: 0, collider: "dynamic" }, dps = 20) {
+			super(base);
 			this.dps = dps;
-			this.color = lerpColor(color("#1C7D51"), color("#26AB6F"), 1 - min(10, this.dps) * 0.1);
-			this.color.setAlpha(50 + 150 * (min(10, this.dps) * 0.1));
+			this.__color = lerpColor(color("#1C7D51"), color("#26AB6F"), 1 - min(10, this.dps) * 0.1);
+			this.__color.setAlpha(50 + 150 * (min(10, this.dps) * 0.1));
+			this.color = this.__color;
+		}
+		_customUpdate() {
+			this.color = this.__color;
 		}
 		collide(target) {
+			this.color = lerpColor(this.__color, color("#000"), 0.5);
 			target.stats.hp.current -= this.dps * (deltaTime * 0.001);
 		}
 	};
+	this.Thorns = class Thorns extends this.Environtment {
+		constructor(base = { x: 0, y: 0, w: 0, h: 0, collider: "dynamic" }, dps = 20) {
+			super(base);
+			this.dps = dps;
+			this.__color = lerpColor(color("#9d0208"), color("#d00000"), 1 - min(10, this.dps) * 0.1);
+			this.__color.setAlpha(50 + 150 * (min(10, this.dps) * 0.1));
+			this.trianglesSize = 5;
+			this._trianglesColor = color("#d3d3d3");
+			this._trianglesColor.setAlpha(50 + 150 * (min(10, this.dps) * 0.1));
+			this._trianglesStroke = color("#f8f9fa");
+			this._trianglesStroke.setAlpha(50 + 150 * (min(10, this.dps) * 0.1));
+			this.spikeSettings = {
+				margin: 15,
+				total: 8,
+			};
+			this.color = this.__color;
+			this.trianglesColor = this._trianglesColor;
+			this.trianglesStroke = this._trianglesStroke;
+		}
+		draw() {
+			this._display();
+			for (let i = 0; i < this.spikeSettings.total; i++) {
+				let vertices = [createVector(0, -this.trianglesSize * 2), createVector(-this.trianglesSize * 2, this.trianglesSize * 2 * 0.5), createVector(this.trianglesSize * 2, this.trianglesSize * 2 * 0.5)];
+				let postranslate = createVector(0 * i, 0 * i);
+				let translates = createVector(0);
+				translates.add(postranslate);
+				push();
+				noStroke();
+				fill(this.trianglesColor);
+				camera.on();
+				translate(this.x, this.y);
+				rotate((360 / this.spikeSettings.total) * i);
+				translate(this.spikeSettings.margin, this.spikeSettings.margin);
+				rotate(12);
+				triangle(vertices[0].x, vertices[0].y, vertices[1].x, vertices[1].y, vertices[2].x, vertices[2].y);
+				pop();
+			}
+		}
+		_customUpdate() {
+			this.color = this.__color;
+			this.trianglesColor = this._trianglesColor;
+			this.trianglesStroke = this._trianglesStroke;
+		}
+		collide(target) {
+			if (abs(target.vel.x) > 1 || abs(target.vel.y) > 1) {
+				this.color = lerpColor(this.__color, color("#000"), 0.5);
+				this.trianglesColor = lerpColor(this._trianglesColor, color("#000"), 0.5);
+				this.trianglesStroke = lerpColor(this._trianglesStroke, color("#000"), 0.5);
+				target.stats.hp.current -= this.dps * (deltaTime * 0.001);
+			}
+		}
+	};
+
+	// 		*****************************************
+	// 		*                                       *
+	// 		*                  Ropes                *
+	// 		*                                       *
+	// 		*****************************************
+
 	this.RopePoint = class {
 		//integrates motion equations per node without taking into account pos
 		//with other nodes...

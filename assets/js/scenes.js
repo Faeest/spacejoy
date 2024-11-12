@@ -1,5 +1,5 @@
 let totalPlayer = 1;
-let worldEnvirontment;
+let playerStatusHelper;
 function GameScene() {
 	this.setup = () => {
 		for (let index = 0; index < min(5, totalPlayer); index++) {
@@ -14,8 +14,8 @@ function GameScene() {
 			gameRopes.value.generate();
 		}
 
-		worldEnvirontment = new Poison(100, 0, 50);
-		GameObjects.assignEntry(worldEnvirontment, { type: "environtment" });
+		playerStatusHelper = new StatusHelper();
+		GameObjects.assignEntry(playerStatusHelper, { type: "statushelper" });
 		frameRate(60);
 	};
 	this.draw = () => {
@@ -23,8 +23,6 @@ function GameScene() {
 		centerCamera();
 		Utilities.renderGrid(camera.position);
 		camera.on();
-
-		worldEnvirontment.draw();
 		push();
 		gameRopes.value.update();
 		gameRopes.value.render();
@@ -32,13 +30,16 @@ function GameScene() {
 		push();
 		GameObjects.getAllItemByType("player").forEach((e) => {
 			e.value.update();
-			e.value.draw();
 		});
 		GameObjects.getAllItemByType("player").forEach((e) => {
+			e.value.draw();
 			e.value?.update2?.();
 			e.value?.draw2?.();
 		});
 		pop();
+
+		playerStatusHelper.draw();
+		playerStatusHelper.update();
 	};
 }
 function MenuScene() {
